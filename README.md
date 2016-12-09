@@ -1,5 +1,5 @@
-Kingbbode - Spring Social
-=========================
+Kingbbode - Spring Security Oauth2
+==================================
 
 > Spring Social Sample
 
