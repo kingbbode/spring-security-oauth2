@@ -38,4 +38,8 @@ public class User {
         this.providerUserId = providerUserId;
         this.deleted = false;
     }
+
+    public boolean isActivated() {
+        return !this.deleted;
+    }
 }
