@@ -20,7 +20,7 @@ public class User {
     private SocialType type;
 
     @Column(unique = true, nullable = false)
-    private String providerUserId;
+    private String id;
 
     @Column(nullable = false)
     private String name;
@@ -32,14 +32,18 @@ public class User {
 
     }
 
-    public User(String providerUserId, String name, String type) {
+    public User(String id, String name, SocialType type) {
         this.name = name;
-        this.type = SocialType.valueOf(type.toUpperCase());
-        this.providerUserId = providerUserId;
+        this.type = type;
+        this.id = id;
         this.deleted = false;
     }
 
     public boolean isActivated() {
         return !this.deleted;
+    }
+
+    public void update(String name){
+        this.name = name;
     }
 }

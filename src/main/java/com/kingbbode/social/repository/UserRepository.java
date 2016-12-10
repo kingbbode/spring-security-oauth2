@@ -1,5 +1,6 @@
 package com.kingbbode.social.repository;
 
+import com.kingbbode.social.enums.SocialType;
 import com.kingbbode.social.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -8,7 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
  */
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    User findByEmail(String lowercaseLogin);
-
-    User findByUsernameCaseInsensitive(String lowercaseLogin);
+    User findByIdAndType(String id, SocialType type);
 }
