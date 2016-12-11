@@ -3,13 +3,15 @@ package com.kingbbode.social.config;
 import com.kingbbode.social.common.ClientResources;
 import com.kingbbode.social.common.OAuth2ClientAuthenticationProcessingFilterAndSave;
 import com.kingbbode.social.enums.SocialType;
+import com.kingbbode.social.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -36,14 +38,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Created by YG-MAC on 2016. 12. 10..
+ * Created by YG-MAC on 2016. 12. 11..
  */
-@EnableAutoConfiguration
+@Configuration
+@EnableWebSecurity
 @EnableOAuth2Client
-public class SocialSecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig extends WebSecurityConfigurerAdapter{
 
     @Autowired
-    private OAuth2ClientContext oauth2ClientContext;
+    private OAuth2ClientContext oAuth2ClientContext;
+
+    @Autowired
+    private UserService userService;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -54,75 +60,26 @@ public class SocialSecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().authenticated()
                 .and().exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/"))
                 .and().logout().logoutSuccessUrl("/").permitAll()
-                .and().csrf().csrfTokenRepository(csrfTokenRepository())
-                .and().addFilterAfter(csrfHeaderFilter(), CsrfFilter.class)
-                .addFilterBefore(ssoFilter(), BasicAuthenticationFilter.class);
+                //.and().csrf().csrfTokenRepository(csrfTokenRepository())
+                .and().csrf().disable()
+                .addFilterAfter(csrfHeaderFilter(), CsrfFilter.class)
+                .addFilterBefore(ssoFilter(), BasicAuthenticationFilter.class)
+
+        .headers().frameOptions().disable();
         // @formatter:on
     }
 
-    @Bean
-    public OAuth2ClientAuthenticationProcessingFilterAndSave facebookFilter(){
-        return new OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType.FACEBOOK, "/login/facebook");
-    }
-
-    @Bean
-    public OAuth2ClientAuthenticationProcessingFilterAndSave githubFilter(){
-        return new OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType.FACEBOOK, "/login/facebook");
-    }
-
-    @Bean
-    public FilterRegistrationBean oauth2ClientFilterRegistration(
-            OAuth2ClientContextFilter filter) {
-        FilterRegistrationBean registration = new FilterRegistrationBean();
-        registration.setFilter(filter);
-        registration.setOrder(-100);
-        return registration;
-    }
-
-    @Bean
-    @ConfigurationProperties("github")
-    ClientResources github() {
-        return new ClientResources();
-    }
-
-    @Bean
-    @ConfigurationProperties("facebook")
-    ClientResources facebook() {
-        return new ClientResources();
-    }
-
-    private Filter ssoFilter() {
-        CompositeFilter filter = new CompositeFilter();
-        List<Filter> filters = new ArrayList<>();
-        filters.add(ssoFilter(facebook(), facebookFilter()));
-        filters.add(ssoFilter(github(), githubFilter()));
-        filter.setFilters(filters);
-        return filter;
-    }
-
-    private Filter ssoFilter(ClientResources client, OAuth2ClientAuthenticationProcessingFilterAndSave filter) {
-        OAuth2RestTemplate template = new OAuth2RestTemplate(client.getClient(),
-                oauth2ClientContext);
-        filter.setRestTemplate(template);
-        filter.setTokenServices(new UserInfoTokenServices(
-                client.getResource().getUserInfoUri(), client.getClient().getClientId()));
-
-        return filter;
-    }
 
     private Filter csrfHeaderFilter() {
         return new OncePerRequestFilter() {
             @Override
-            protected void doFilterInternal(HttpServletRequest request,
-                                            HttpServletResponse response, FilterChain filterChain)
-                    throws ServletException, IOException {
-                CsrfToken csrf = (CsrfToken) request
-                        .getAttribute(CsrfToken.class.getName());
+            protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
+                                            FilterChain filterChain) throws ServletException, IOException {
+                CsrfToken csrf = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
                 if (csrf != null) {
                     Cookie cookie = WebUtils.getCookie(request, "XSRF-TOKEN");
                     String token = csrf.getToken();
-                    if (cookie == null
-                            || token != null && !token.equals(cookie.getValue())) {
+                    if (cookie == null || token != null && !token.equals(cookie.getValue())) {
                         cookie = new Cookie("XSRF-TOKEN", token);
                         cookie.setPath("/");
                         response.addCookie(cookie);
@@ -137,5 +94,46 @@ public class SocialSecurityConfig extends WebSecurityConfigurerAdapter {
         HttpSessionCsrfTokenRepository repository = new HttpSessionCsrfTokenRepository();
         repository.setHeaderName("X-XSRF-TOKEN");
         return repository;
+    }
+
+
+    @Bean
+    public FilterRegistrationBean oauth2ClientFilterRegistration(
+            OAuth2ClientContextFilter filter) {
+        FilterRegistrationBean registration = new FilterRegistrationBean();
+        registration.setFilter(filter);
+        registration.setOrder(-100);
+        return registration;
+    }
+
+    @Bean
+    @ConfigurationProperties("twitter")
+    ClientResources twitter() {
+        return new ClientResources();
+    }
+
+    @Bean
+    @ConfigurationProperties("facebook")
+    ClientResources facebook() {
+        return new ClientResources();
+    }
+
+    private Filter ssoFilter() {
+        CompositeFilter filter = new CompositeFilter();
+        List<Filter> filters = new ArrayList<>();
+        filters.add(ssoFilter(facebook(), new OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType.FACEBOOK, "/login/facebook", userService)));
+        filters.add(ssoFilter(twitter(), new OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType.TWITTER, "/login/twitter", userService)));
+        filter.setFilters(filters);
+        return filter;
+    }
+
+    private Filter ssoFilter(ClientResources client, OAuth2ClientAuthenticationProcessingFilterAndSave filter) {
+        OAuth2RestTemplate template = new OAuth2RestTemplate(client.getClient(),
+                oAuth2ClientContext);
+        filter.setRestTemplate(template);
+        filter.setTokenServices(new UserInfoTokenServices(
+                client.getResource().getUserInfoUri(), client.getClient().getClientId()));
+
+        return filter;
     }
 }

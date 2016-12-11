@@ -1,9 +1,10 @@
 server:
   port: 9000
+
 facebook:
   client:
-    clientId: /*sample*/
-    clientSecret: /*sample*/
+    clientId:
+    clientSecret:
     accessTokenUri: https://graph.facebook.com/oauth/access_token
     userAuthorizationUri: https://www.facebook.com/dialog/oauth
     tokenName: oauth_token
@@ -16,7 +17,24 @@ logging:
   level:
     org.springframework.security: DEBUG
 
+security:
+  basic:
+    enabled: false
+
 spring:
   resources:
     chain:
       enabled: true
+  datasource:
+    url: jdbc:h2:~/my-jwp;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: create
