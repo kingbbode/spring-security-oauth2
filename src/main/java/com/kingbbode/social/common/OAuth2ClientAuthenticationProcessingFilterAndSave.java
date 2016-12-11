@@ -20,8 +20,8 @@ public class OAuth2ClientAuthenticationProcessingFilterAndSave extends OAuth2Cli
 
     private SocialType type;
 
-    public OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType type, String defaultFilterProcessesUrl, UserService userService) {
-        super(defaultFilterProcessesUrl);
+    public OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType type, UserService userService) {
+        super(type.getUrl());
         this.type = type;
         this.userService = userService;
     }

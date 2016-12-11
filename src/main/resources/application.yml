@@ -3,13 +3,14 @@ server:
 
 facebook:
   client:
-    clientId:
-    clientSecret:
+    clientId: sample
+    clientSecret: sample
     accessTokenUri: https://graph.facebook.com/oauth/access_token
     userAuthorizationUri: https://www.facebook.com/dialog/oauth
     tokenName: oauth_token
     authenticationScheme: query
     clientAuthenticationScheme: form
+    #scope: public_profile,email,user_birthday
   resource:
     userInfoUri: https://graph.facebook.com/me
 

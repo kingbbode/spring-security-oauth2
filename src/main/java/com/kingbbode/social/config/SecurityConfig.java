@@ -1,11 +1,12 @@
 package com.kingbbode.social.config;
 
 import com.kingbbode.social.common.ClientResources;
+import com.kingbbode.social.common.CustomAuthenticationSuccessHandler;
 import com.kingbbode.social.common.OAuth2ClientAuthenticationProcessingFilterAndSave;
+import com.kingbbode.social.common.UserTokenServices;
 import com.kingbbode.social.enums.SocialType;
 import com.kingbbode.social.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -19,7 +20,6 @@ import org.springframework.security.oauth2.client.filter.OAuth2ClientContextFilt
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
@@ -43,7 +43,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @EnableOAuth2Client
-public class SecurityConfig extends WebSecurityConfigurerAdapter{
+public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private OAuth2ClientContext oAuth2ClientContext;
@@ -56,16 +56,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
         // @formatter:off
         http.antMatcher("/**")
                 .authorizeRequests()
-                .antMatchers("/", "/login**", "/webjars/**").permitAll()
+                .antMatchers("/", "user", "/login**", "/webjars/**", "/auth/**").permitAll()
                 .anyRequest().authenticated()
                 .and().exceptionHandling().authenticationEntryPoint(new LoginUrlAuthenticationEntryPoint("/"))
                 .and().logout().logoutSuccessUrl("/").permitAll()
                 //.and().csrf().csrfTokenRepository(csrfTokenRepository())
                 .and().csrf().disable()
-                .addFilterAfter(csrfHeaderFilter(), CsrfFilter.class)
+                //.addFilterAfter(csrfHeaderFilter(), CsrfFilter.class)
                 .addFilterBefore(ssoFilter(), BasicAuthenticationFilter.class)
 
-        .headers().frameOptions().disable();
+                .headers().frameOptions().disable();
         // @formatter:on
     }
 
@@ -121,19 +121,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter{
     private Filter ssoFilter() {
         CompositeFilter filter = new CompositeFilter();
         List<Filter> filters = new ArrayList<>();
-        filters.add(ssoFilter(facebook(), new OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType.FACEBOOK, "/login/facebook", userService)));
-        filters.add(ssoFilter(twitter(), new OAuth2ClientAuthenticationProcessingFilterAndSave(SocialType.TWITTER, "/login/twitter", userService)));
+        filters.add(ssoFilter(facebook(), SocialType.FACEBOOK));
+        filters.add(ssoFilter(twitter(), SocialType.TWITTER));
         filter.setFilters(filters);
         return filter;
     }
 
-    private Filter ssoFilter(ClientResources client, OAuth2ClientAuthenticationProcessingFilterAndSave filter) {
-        OAuth2RestTemplate template = new OAuth2RestTemplate(client.getClient(),
-                oAuth2ClientContext);
-        filter.setRestTemplate(template);
-        filter.setTokenServices(new UserInfoTokenServices(
-                client.getResource().getUserInfoUri(), client.getClient().getClientId()));
+    private Filter ssoFilter(ClientResources client, SocialType type) {
+        OAuth2ClientAuthenticationProcessingFilterAndSave filter =
+                new OAuth2ClientAuthenticationProcessingFilterAndSave(type, userService);
+        OAuth2RestTemplate template =
+                new OAuth2RestTemplate(client.getClient(), oAuth2ClientContext);
 
+        filter.setRestTemplate(template);
+        filter.setTokenServices(new UserTokenServices(client, type));
+        filter.setAuthenticationSuccessHandler((request, response, authentication) -> response.sendRedirect("/auth/complete"));
+        filter.setAuthenticationFailureHandler((request, response, exception) -> response.sendRedirect("/"));
         return filter;
     }
 }
