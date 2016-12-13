@@ -1,7 +1,6 @@
 package com.kingbbode.social.config;
 
 import com.kingbbode.social.common.ClientResources;
-import com.kingbbode.social.common.CustomAuthenticationSuccessHandler;
 import com.kingbbode.social.common.OAuth2ClientAuthenticationProcessingFilterAndSave;
 import com.kingbbode.social.common.UserTokenServices;
 import com.kingbbode.social.enums.SocialType;
