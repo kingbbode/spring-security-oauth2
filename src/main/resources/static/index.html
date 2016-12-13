@@ -37,8 +37,10 @@
         var self = this;
         self.refresh = function(){
             $http.get("/user").success(function(data) {
-                self.user = data.userAuthentication.details.name;
-                self.authenticated = true;
+                if(data && data['userAuthentication']) {
+                    self.user = data.userAuthentication.details.name;
+                    self.authenticated = true;
+                }
             }).error(function() {
                 self.user = "N/A";
                 self.authenticated = false;
@@ -58,6 +60,7 @@
             var that = self;
             window.onCallback = function(e) {
                 try {
+                    console.log('in');
                     loginWindow.close();
                     window.focus();
                     that.refresh();

@@ -5,9 +5,7 @@
 </head>
 <body>
 <script type="text/javascript">
-    if(window['onCallback']){
-        window.onCallback();
-    }
+    window.opener.onCallback();
 </script>
 </body>
 </html>
