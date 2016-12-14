@@ -37,9 +37,12 @@
         var self = this;
         self.refresh = function(){
             $http.get("/user").success(function(data) {
-                if(data && data['userAuthentication']) {
+                if(data) {
                     self.user = data.userAuthentication.details.name;
                     self.authenticated = true;
+                }else{
+                    self.user = "N/A";
+                    self.authenticated = false;
                 }
             }).error(function() {
                 self.user = "N/A";
